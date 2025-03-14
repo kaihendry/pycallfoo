@@ -1,4 +1,4 @@
-name: Test
+name: Call foo
 
 on: [ push ]
 
@@ -10,4 +10,4 @@ jobs:
     - uses: astral-sh/setup-uv@v5
     - run: uv sync --all-extras --dev
     - run: uv run pytest tests
-    - run: uv run coverage report
+    - run: uv run ./main.py
