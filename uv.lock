@@ -1,0 +1,19 @@
+version = 1
+revision = 1
+requires-python = ">=3.9"
+
+[[package]]
+name = "callfoo"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "pyunderstand" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pyunderstand", git = "https://github.com/kaihendry/pyunderstand" }]
+
+[[package]]
+name = "pyunderstand"
+version = "0.1.0"
+source = { git = "https://github.com/kaihendry/pyunderstand#3e74ef5a53e643c53914242c64025e3f639a2541" }

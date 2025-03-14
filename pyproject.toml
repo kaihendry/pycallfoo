@@ -1,0 +1,12 @@
+[project]
+name = "callfoo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pyunderstand",
+]
+
+[tool.uv.sources]
+pyunderstand = { git = "https://github.com/kaihendry/pyunderstand" }
