@@ -15,5 +15,5 @@ requires-dist = [{ name = "pyunderstand", git = "https://github.com/kaihendry/py
 
 [[package]]
 name = "pyunderstand"
-version = "0.1.0"
-source = { git = "https://github.com/kaihendry/pyunderstand#3e74ef5a53e643c53914242c64025e3f639a2541" }
+version = "0.1.1"
+source = { git = "https://github.com/kaihendry/pyunderstand#b6ed698b6de2932d1da55a1fd853c435fd138799" }
