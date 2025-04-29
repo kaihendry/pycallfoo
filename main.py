@@ -1,7 +1,7 @@
-from shared import yikes
+from pyunderstand import foo
 
 def main():
-    result = yikes()
+    result = foo()
     print(result)
 
 
