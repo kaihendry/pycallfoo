@@ -1,7 +1,7 @@
 from pyunderstand import foo
 
 def main():
-    result = foo()
+    result =   foo()
     print(result)
 
 

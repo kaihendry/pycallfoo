@@ -8,5 +8,5 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v6
-    - run: uv sync --all-extras --dev
-    - run: uv run ./main.py
+    - run: uv sync
+    - run: uv run main.py
