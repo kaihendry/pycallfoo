@@ -11,7 +11,8 @@ jobs:
       with:
         repository: kaihendry/pyunderstand
         path: pyunderstand
-    - run: echo 'def foo(): return "local edit"' > pyunderstand/pyunderstand/__init__.py
+    - run: |
+        echo 'def foo(): return "local edit"' > pyunderstand/pyunderstand/__init__.py
     - uses: astral-sh/setup-uv@v7
     - run: uv add --editable ./pyunderstand
     - run: uv sync
