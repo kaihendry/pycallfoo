@@ -45,6 +45,39 @@ pyunderstand_version: main
 another_dep_version: v1.2.3
 ```
 
+## Local development
+
+When GitHub Actions is unavailable, use the Python script:
+
+```bash
+# Normal usage - resolves ref automatically
+./setup_deps.py
+uv run main.py
+
+# Override with specific ref
+PYUNDERSTAND_REF=feature-branch ./setup_deps.py
+
+# Test the resolution logic
+./test_ref_resolution.py
+```
+
+The script follows the same resolution order as the GitHub Action.
+
+## Why this pattern?
+
+This solves the problem of **coordinated development across repositories**:
+
+| Scenario | What happens |
+|----------|--------------|
+| Working on `feature-x` branch in both repos | Automatically uses `feature-x` from pyunderstand |
+| Push to `main` | Uses pinned version from `config.yaml` (stable) |
+| CI/CD override needed | Set `PYUNDERSTAND_REF` or use workflow_dispatch |
+
+This avoids:
+- Hardcoding refs in pyproject.toml that break other branches
+- Forgetting to update refs when switching contexts
+- CI failures due to mismatched branches during feature development
+
 https://discord.com/channels/1039017663004942429/1388197295387840552/1392105578649878611
 
     so ... (learned this the hard way) ...
