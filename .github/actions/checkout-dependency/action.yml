@@ -1,0 +1,72 @@
+name: Checkout Dependency
+description: Checkout a dependency repo with smart ref resolution
+
+inputs:
+  repository:
+    description: 'Repository to checkout (owner/repo)'
+    required: true
+  ref:
+    description: 'Git ref override (branch, tag, or SHA)'
+    required: false
+    default: ''
+  path:
+    description: 'Relative path to checkout the repository'
+    required: true
+  config-key:
+    description: 'Key in config.yaml to read fallback ref from'
+    required: false
+    default: 'version'
+  token:
+    description: 'GitHub token for API calls'
+    required: true
+
+outputs:
+  ref:
+    description: 'The resolved ref that was checked out'
+    value: ${{ steps.resolve.outputs.ref }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve ref
+      id: resolve
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        REF="${{ inputs.ref }}"
+        REPO="${{ inputs.repository }}"
+
+        # 1. Use manual override if provided
+        if [[ -n "$REF" ]]; then
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # 2. Check if current branch exists in target repo (skip for main/master)
+        BRANCH="${GITHUB_REF#refs/heads/}"
+        if [[ "$BRANCH" != "main" && "$BRANCH" != "master" ]]; then
+          if gh api "repos/$REPO/branches/$BRANCH" --silent 2>/dev/null; then
+            echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        fi
+
+        # 3. Read from config.yaml if present
+        if [[ -f config.yaml ]]; then
+          REF=$(yq '.${{ inputs.config-key }}' config.yaml)
+          if [[ -n "$REF" && "$REF" != "null" ]]; then
+            echo "ref=$REF" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        fi
+
+        # 4. Fall back to default branch (empty ref)
+        echo "ref=" >> "$GITHUB_OUTPUT"
+
+    - name: Checkout dependency
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ steps.resolve.outputs.ref }}
+        path: ${{ inputs.path }}
