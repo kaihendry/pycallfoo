@@ -1,16 +1,57 @@
 name: Call foo
 
-on: [ push ]
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      pyunderstand_ref:
+        description: 'Git ref for kaihendry/pyunderstand (branch, tag, or SHA)'
+        required: false
+        default: ''
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+    - name: Determine pyunderstand ref
+      id: pyunderstand-ref
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # Use manual input if provided
+        if [[ -n "${{ inputs.pyunderstand_ref }}" ]]; then
+          echo "ref=${{ inputs.pyunderstand_ref }}" >> "$GITHUB_OUTPUT"
+          echo "Using manual override: ${{ inputs.pyunderstand_ref }}"
+          exit 0
+        fi
+
+        # Extract branch name from github.ref
+        BRANCH="${GITHUB_REF#refs/heads/}"
+
+        # Check if branch exists in pyunderstand
+        if gh api "repos/kaihendry/pyunderstand/branches/$BRANCH" --silent 2>/dev/null; then
+          echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Found matching branch: $BRANCH"
+        else
+          echo "ref=" >> "$GITHUB_OUTPUT"
+          echo "Branch '$BRANCH' not found in pyunderstand, using default branch"
+        fi
     - uses: actions/checkout@v6
       with:
         repository: kaihendry/pyunderstand
+        ref: ${{ steps.pyunderstand-ref.outputs.ref }}
         path: pyunderstand
+    - name: Summary
+      run: |
+        REF="${{ steps.pyunderstand-ref.outputs.ref }}"
+        if [[ -z "$REF" ]]; then
+          REF="(default branch)"
+        fi
+        echo "## 📦 Dependencies" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Repository | Ref |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|------------|-----|" >> "$GITHUB_STEP_SUMMARY"
+        echo "| kaihendry/pyunderstand | \`$REF\` |" >> "$GITHUB_STEP_SUMMARY"
     - uses: astral-sh/setup-uv@v7
     - run: uv add --editable ./pyunderstand
     - run: uv sync
