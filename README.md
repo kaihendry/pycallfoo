@@ -9,6 +9,24 @@ The `checkout-dependency` composite action (`.github/actions/checkout-dependency
 3. Value from `config.yaml` (configurable key, defaults to `version`)
 4. Default branch
 
+```mermaid
+flowchart TD
+    A[Start] --> B{Manual ref<br/>provided?}
+    B -->|Yes| C[Use manual ref]
+    B -->|No| D{Current branch<br/>is main/master?}
+    D -->|Yes| G{config.yaml<br/>has version?}
+    D -->|No| E{Branch exists<br/>in target repo?}
+    E -->|Yes| F[Use matching branch]
+    E -->|No| G
+    G -->|Yes| H[Use config.yaml version]
+    G -->|No| I[Use default branch]
+
+    C --> J[Checkout dependency]
+    F --> J
+    H --> J
+    I --> J
+```
+
 ### Usage
 
 ```yaml

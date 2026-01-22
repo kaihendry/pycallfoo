@@ -1,0 +1,139 @@
+name: Ref Resolution Scenarios
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Scenario 1: Manual override takes precedence
+  manual-override:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: ./.github/actions/checkout-dependency
+      id: checkout
+      with:
+        repository: kaihendry/pyunderstand
+        ref: main  # Explicit override
+        path: pyunderstand
+        token: ${{ github.token }}
+    - name: Verify
+      run: |
+        echo "## Scenario 1: Manual Override" >> $GITHUB_STEP_SUMMARY
+        echo "Expected: \`main\` (explicit)" >> $GITHUB_STEP_SUMMARY
+        echo "Got: \`${{ steps.checkout.outputs.ref }}\`" >> $GITHUB_STEP_SUMMARY
+        cd pyunderstand && git log --oneline -1
+
+  # Scenario 2: Main branch skips matching, uses config.yaml
+  main-uses-config:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: ./.github/actions/checkout-dependency
+      id: checkout
+      with:
+        repository: kaihendry/pyunderstand
+        path: pyunderstand
+        token: ${{ github.token }}
+    - name: Verify
+      run: |
+        echo "## Scenario 2: Main Branch → config.yaml" >> $GITHUB_STEP_SUMMARY
+        echo "Current branch: \`${GITHUB_REF#refs/heads/}\`" >> $GITHUB_STEP_SUMMARY
+        echo "Expected: \`$(yq '.version' config.yaml)\` (from config.yaml)" >> $GITHUB_STEP_SUMMARY
+        echo "Got: \`${{ steps.checkout.outputs.ref }}\`" >> $GITHUB_STEP_SUMMARY
+        cd pyunderstand && git log --oneline -1
+
+  # Scenario 3: Simulate non-existent branch falling back to config.yaml
+  nonexistent-branch-fallback:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Simulate branch check
+      run: |
+        echo "## Scenario 3: Non-existent Branch Fallback" >> $GITHUB_STEP_SUMMARY
+        FAKE_BRANCH="this-branch-does-not-exist-12345"
+        if gh api "repos/kaihendry/pyunderstand/branches/$FAKE_BRANCH" --silent 2>/dev/null; then
+          echo "Branch \`$FAKE_BRANCH\` exists (unexpected)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Branch \`$FAKE_BRANCH\` not found → falls back to config.yaml" >> $GITHUB_STEP_SUMMARY
+          echo "Config version: \`$(yq '.version' config.yaml)\`" >> $GITHUB_STEP_SUMMARY
+        fi
+      env:
+        GH_TOKEN: ${{ github.token }}
+    - uses: ./.github/actions/checkout-dependency
+      id: checkout
+      with:
+        repository: kaihendry/pyunderstand
+        path: pyunderstand
+        token: ${{ github.token }}
+    - name: Verify
+      run: |
+        echo "Got: \`${{ steps.checkout.outputs.ref }}\`" >> $GITHUB_STEP_SUMMARY
+        cd pyunderstand && git log --oneline -1
+
+  # Scenario 4: No config.yaml uses default branch
+  no-config-default:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Remove config.yaml temporarily
+      run: rm -f config.yaml
+    - uses: ./.github/actions/checkout-dependency
+      id: checkout
+      with:
+        repository: kaihendry/pyunderstand
+        path: pyunderstand
+        token: ${{ github.token }}
+    - name: Verify
+      run: |
+        echo "## Scenario 4: No config.yaml → Default Branch" >> $GITHUB_STEP_SUMMARY
+        echo "config.yaml: removed" >> $GITHUB_STEP_SUMMARY
+        REF="${{ steps.checkout.outputs.ref }}"
+        if [ -z "$REF" ]; then
+          echo "Got: (empty) → uses repo default branch" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "Got: \`$REF\`" >> $GITHUB_STEP_SUMMARY
+        fi
+        cd pyunderstand && git log --oneline -1
+
+  # Scenario 5: Invalid ref in config.yaml
+  invalid-config-ref:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set invalid version
+      run: |
+        echo "version: this-ref-does-not-exist-xyz" > config.yaml
+        cat config.yaml
+    - uses: ./.github/actions/checkout-dependency
+      id: checkout
+      continue-on-error: true
+      with:
+        repository: kaihendry/pyunderstand
+        path: pyunderstand
+        token: ${{ github.token }}
+    - name: Verify
+      run: |
+        echo "## Scenario 5: Invalid config.yaml Ref" >> $GITHUB_STEP_SUMMARY
+        echo "config.yaml version: \`this-ref-does-not-exist-xyz\`" >> $GITHUB_STEP_SUMMARY
+        echo "Result: Checkout fails (expected)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "⚠️ This demonstrates that invalid refs in config.yaml will cause failures." >> $GITHUB_STEP_SUMMARY
+        echo "Ensure the version in config.yaml exists in the target repo." >> $GITHUB_STEP_SUMMARY
+
+  # Summary job
+  summary:
+    runs-on: ubuntu-latest
+    needs: [manual-override, main-uses-config, nonexistent-branch-fallback, no-config-default, invalid-config-ref]
+    if: always()
+    steps:
+    - name: Summary
+      run: |
+        echo "## Resolution Scenarios Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Scenario | Description |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|-------------|" >> $GITHUB_STEP_SUMMARY
+        echo "| 1. Manual Override | Explicit ref always wins |" >> $GITHUB_STEP_SUMMARY
+        echo "| 2. Main Branch | Skips branch matching, uses config.yaml |" >> $GITHUB_STEP_SUMMARY
+        echo "| 3. Non-existent Branch | Falls back to config.yaml |" >> $GITHUB_STEP_SUMMARY
+        echo "| 4. No config.yaml | Uses repo default branch |" >> $GITHUB_STEP_SUMMARY
+        echo "| 5. Invalid Ref | Fails (validates config.yaml correctness) |" >> $GITHUB_STEP_SUMMARY
