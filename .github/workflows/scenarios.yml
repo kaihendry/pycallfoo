@@ -8,7 +8,7 @@ jobs:
   manual-override:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: ./.github/actions/checkout-dependency
       id: checkout
       with:
@@ -27,7 +27,7 @@ jobs:
   main-uses-config:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: ./.github/actions/checkout-dependency
       id: checkout
       with:
@@ -46,7 +46,7 @@ jobs:
   nonexistent-branch-fallback:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Simulate branch check
       run: |
         echo "## Scenario 3: Non-existent Branch Fallback" >> $GITHUB_STEP_SUMMARY
@@ -74,7 +74,7 @@ jobs:
   no-config-default:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Remove config.yaml temporarily
       run: rm -f config.yaml
     - uses: ./.github/actions/checkout-dependency
@@ -99,7 +99,7 @@ jobs:
   invalid-config-ref:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Set invalid version
       run: |
         echo "version: this-ref-does-not-exist-xyz" > config.yaml
